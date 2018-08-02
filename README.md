@@ -1,0 +1,2 @@
+# PythonNotes
+Заметки о Python
