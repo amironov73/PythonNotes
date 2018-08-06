@@ -1,5 +1,7 @@
 ### Работа с файлами
 
+#### Обычные файлы
+
 ```python
 with open("C:\\SomeFile.txt", 'r', encoding='cp1251') as f:
     for line in f:
