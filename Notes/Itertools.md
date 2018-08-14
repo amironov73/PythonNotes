@@ -107,7 +107,7 @@ print(list(permutations('ABCD', 2)))
 # [('A', 'B'), ('A', 'C'), ('A', 'D'), ('B', 'A'), ('B', 'C'), ('B', 'D'),
 #  ('C', 'A'), ('C', 'B'), ('C', 'D'), ('D', 'A'), ('D', 'B'), ('D', 'C')]
 ```
-* **product(*iterables, repeat=1)** - перемножение последовательностей
+* **product(\*iterables, repeat=1)** - перемножение последовательностей
 
 ```python
 from itertools import product

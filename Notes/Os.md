@@ -26,7 +26,7 @@
 
 * **lseek(fd, pos, how)** - позиционирование по файлу.
 
-* **open(path, flags, mode=0o777, *, dir_fd=None)** - открытие файла. Режимы: O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_CREAT, O_EXCL, O_TRUNC. Только в Windows доступны: O_BINARY, O_NOINHERIT, O_SHORT_LIVED, O_TEMPORARY, O_RANDOM, O_SEQUENTIAL, O_TEXT. 
+* **open(path, flags, mode=0o777, \*, dir_fd=None)** - открытие файла. Режимы: O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_CREAT, O_EXCL, O_TRUNC. Только в Windows доступны: O_BINARY, O_NOINHERIT, O_SHORT_LIVED, O_TEMPORARY, O_RANDOM, O_SEQUENTIAL, O_TEXT. 
 
 * **pipe()** - создание канала.
  
