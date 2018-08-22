@@ -79,5 +79,44 @@ print(sorted(d.items()))
 # [('beer', 1), ('steak', 2), ('wine', 2)]
 ```
 
-Можно городить словари произвольной вложенности:
+#### Слияние двух словарей
 
+В Python 3.5 и выше:
+
+```python
+x = { 'one': 'two', 'three' : 'four' }
+y = { 'five': 'six', 'one': 'eight' }
+z = { **x, **y }
+# z = {'one': 'eight', 'three': 'four', 'five': 'six'}
+```
+Раньше:
+
+```python
+x = { 'one': 'two', 'three' : 'four' }
+y = { 'five': 'six', 'one': 'eight' }
+z = x.copy().update(y)
+# результат тот же
+```
+
+#### Как отсортировать словарь по значениям
+
+```python
+import operator
+
+x = {1: 2, 3: 4, 4: 3, 2: 1, 0: 0}
+sorted_x = sorted(x.items(), key=operator.itemgetter(1))
+# sorted_x = [(0, 0), (2, 1), (1, 2), (4, 3), (3, 4)]
+```
+
+или так:
+
+```python
+x = {1: 2, 3: 4, 4: 3, 2: 1, 0: 0}
+for w in sorted(x, key=x.get, reverse=True):
+  print(w, x[w])
+# 3 4
+# 4 3
+# 1 2
+# 2 1
+# 0 0  
+```
