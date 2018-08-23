@@ -1,12 +1,14 @@
 ### Магические методы
 
+Статья https://habr.com/post/186608/
+
 Магические методы позволяют задать поведение экземпляров ваших классов в определенных ситуациях.
 
 #### Конструирование и удаление объектов
 
 * **\_\_init\_\_ (self, ...)** - наверное, самый известный магический метод. Он вызывается при создании экземпляра объекта.
 
-* **\_\_new\_\_ (cls, ...)** - предшественник `__new__`. Именно он конструирует новый экземпляр объекта, который затем в виде `self` попадает в `__init__`. Обратите внимание, это метод класса, а не экземпляра!
+* **\_\_new\_\_ (cls, ...)** - предшественник `__new__`. Именно он конструирует новый экземпляр объекта, который затем в виде `self` попадает в `__init__`. Обратите внимание, это метод класса, а не экземпляра! С помощью `__new__` можно возвращать уже существующий экземпляр вместо создания нового (получится синглтон)!
 
 * **\_\_del\_\_ (self)** - деструктор, ответственный за уничтожение экземпляра объекта.
 
@@ -208,5 +210,242 @@ class Word(str):
 * **\_\_hash\_\_(self)** - для функции `hash()`.
 
 * **\_\_bool\_\_(self)** - для функции `bool()`.
- 
- 
+
+* **\_\_dir\_\_(self)** - для функции `dir()`. Может потребоваться для интерактивных сценариев.
+
+* **\_\_sizeof\_\_(self)** - для функции `sys.getsizeof()`.
+
+* **\_\_getattr\_\_(self, name)** - вызывается, когда пытаются получить значение НЕСУЩЕСТВУЮЩЕГО атрибута.
+
+* **\_\_getattribute\_\_(self, name)** - вызывается, когда пытаются получить значение ЛЮБОГО атрибута.
+
+```python
+def __getattribute__(self, name):
+    return  self.__dict__[name]  # Как-то так
+```
+
+* **\_\_setattr\_\_(self, name, value)** - вызывается при любой попытке установки значения ЛЮБОГО атрибута.
+
+```python
+def __setattr__(self, name, value):
+    self.__dict__[name] = value  # Как-то так
+```
+
+* **\_\_delattr\_\_(self, name)** - вызывается при попытке удалить ЛЮБОЙ атрибут.
+
+```python
+def __delattr__(self, name):
+    self.__dict__.remove(name)
+```
+
+Пример подсчета обращений к атрибутам:
+
+```python
+class AccessCounter(object):
+    """Класс, содержащий атрибут value и реализующий счётчик доступа к нему.
+    Счётчик увеличивается каждый раз, когда меняется value."""
+
+    def __init__(self, val):
+        super(AccessCounter, self).__setattr__('counter', 0)
+        super(AccessCounter, self).__setattr__('value', val)
+
+    def __setattr__(self, name, value):
+        if name == 'value':
+            super(AccessCounter, self).__setattr__('counter', self.counter + 1)
+        # Не будем делать здесь никаких условий.
+        # Если вы хотите предотвратить изменение других атрибутов,
+        # выбросьте исключение AttributeError(name)
+        super(AccessCounter, self).__setattr__(name, value)
+
+    def __delattr__(self, name):
+        if name == 'value':
+            super(AccessCounter, self).__setattr__('counter', self.counter + 1)
+        super(AccessCounter, self).__delattr__(name)
+```
+
+#### Контейнеры
+
+* **\_\_len\_\_(self)** - для функции `len()`.
+
+* **\_\_getitem\_\_(self, key)** - для получения элемента через `self[key]`.
+
+* **\_\_setitem\_\_(self, key, value)** - для установки значения элемента через `self[key] = value`.
+
+* **\_\_iter\_\_(self)** - вызывается функцией `iter()`. Возвращает итератор для контейнера.
+
+* **\_\_next\_\_(self)** - вызывается функцией `next()`. Метод должен либо вернуть следующее значение из последовательности, либо выбросить `StopIteration`.
+
+* **\_\_reversed\_\_(self)** - для функции `reversed()`.
+
+* **\_\_contains\_\_(self, item)** - для оператора `in`.
+
+* **\_\_missing\_\_(self, key)** - используется при наследовании от `dict`. Определяет поведение для для каждого случая, когда пытаются получить элемент по несуществующему ключу.
+
+Пример:
+
+```python
+class FunctionalList:
+    """Класс-обёртка над списком с добавлением некоторой функциональной магии: head,
+    tail, init, last, drop, take."""
+
+    def __init__(self, values=None):
+        if values is None:
+            self.values = []
+        else:
+            self.values = values
+
+    def __len__(self):
+        return len(self.values)
+
+    def __getitem__(self, key):
+        # если значение или тип ключа некорректны, list выбросит исключение
+        return self.values[key]
+
+    def __setitem__(self, key, value):
+        self.values[key] = value
+
+    def __delitem__(self, key):
+        del self.values[key]
+
+    def __iter__(self):
+        return iter(self.values)
+
+    def __reversed__(self):
+        return FunctionalList(reversed(self.values))
+
+    def append(self, value):
+        self.values.append(value)
+        
+    def head(self):
+        # получить первый элемент
+        return self.values[0]
+        
+    def tail(self):
+        """получить все элементы после первого"""
+        return self.values[1:]
+        
+    def init(self):
+        """получить все элементы кроме последнего"""
+        return self.values[:-1]
+        
+    def last(self):
+        """получить последний элемент"""
+        return self.values[-1]
+        
+    def drop(self, n):
+        """все элементы кроме первых n"""
+        return self.values[n:]
+        
+    def take(self, n):
+        """первые n элементов"""
+        return self.values[:n]
+```
+
+#### Рефлексия
+
+* **\_\_instancecheck\_\_(self, instance)** - для функции `isinstance(instance, class)`. Проверяет, является ли экземпляр членом нашего класса.
+
+* **\_\_subclasscheck\_\_(self, subclass)** - для функции `issubclass(subclass, classs)`. Проверяет, наследуется ли класс от нашего.
+
+#### Вызываемые объекты (callable)
+
+* **\_\_call\_\_(self, args)** - позволяет экземпляру класса быть вызванным так, будто он функция.
+
+Пример
+
+```python
+class Entity:
+
+	def __init__(self):
+		self.x = 0
+		self.y = 0
+		
+	def __call__(self, x, y):
+		self.x = x
+		self.y = y
+		
+	def __str__(self):
+		return f'x={self.x}; y={self.y}'
+
+e = Entity()
+e(1, 2)
+print(e)
+# x=1; y=2
+```
+
+#### Менеджеры контекста
+
+* **\_\_enter\_\_(self)** - вход в блок. Возвращаемое значение и есть то, с чем производятся операции внутри `with`.
+
+* **\_\_exit\_\_(self, exception_type, exception_value, traceback)** - определяет действия менеджера контекста после того, как блок будет выполнен (или прерван во время работы). Может использоваться для контроля исключений, чистки, любых действий которые должны быть выполнены незамедлительно после блока внутри with. Если блок выполнен успешно, exception_type, exception_value, и traceback будут установлены в None. В другом случае вы сами выбираете, перехватывать ли исключение или предоставить это пользователю; если вы решили перехватить исключение, убедитесь, что `__exit__` возвращает `True` после того как всё сказано и сделано. Если вы не хотите, чтобы исключение было перехвачено менеджером контекста, просто позвольте ему случиться.
+
+Пример
+
+```python
+class Closer:
+    """Менеджер контекста для автоматического закрытия объекта вызовом метода close 
+    в with-выражении."""
+
+    def __init__(self, obj):
+        self.obj = obj
+
+    def __enter__(self):
+        return self.obj # привязка к активному объекту with-блока
+
+    def __exit__(self, exception_type, exception_val, trace):
+        try:
+           self.obj.close()
+        except AttributeError: # у объекта нет метода close
+           print('Not closable.')
+           return True # исключение перехвачено
+```
+
+#### Дескрипторы
+
+Дескрипторы это такие классы, с помощью которых можно добавить свою логику к событиям доступа (получение, изменение, удаление) к атрибутам других объектов. Дескрипторы не подразумевается использовать сами по себе; скорее, предполагается, что ими будут владеть какие-нибудь связанные с ними классы.
+
+* **\_\_get\_\_(self, instance, owner)** - определяет поведение при возвращении значения из дескриптора. `instance` это объект, для чьего атрибута-дескриптора вызывается метод. `owner` это тип (класс) объекта.
+
+* **\_\_set\_\_(self, instance, value)** - определяет поведение при изменении значения из дескриптора. `instance` это объект, для чьего атрибута-дескриптора вызывается метод. `value` это значение для установки в дескриптор.
+
+* **\_\_delete\_\_(self, instance)** - определяет поведение для удаления значения из дескриптора. `instance` это объект, владеющий дескриптором.
+
+
+Пример: преобразование единиц измерения
+
+```python
+class Meter(object):
+    """Дескриптор для метра."""
+
+    def __init__(self, value=0.0):
+        self.value = float(value)
+        
+    def __get__(self, instance, owner):
+        return self.value
+        
+    def __set__(self, instance, value):
+        self.value = float(value)
+
+
+class Foot(object):
+    """Дескриптор для фута."""
+
+    def __get__(self, instance, owner):
+        return instance.meter * 3.2808
+        
+    def __set__(self, instance, value):
+        instance.meter = float(value) / 3.2808
+
+
+class Distance(object):
+    """Класс, описывающий расстояние, содержит два дескриптора для футов и
+    метров."""
+    meter = Meter()
+    foot = Foot()    
+```
+
+#### Клонирование объектов
+
+* **\_\_copy\_\_(self)** - для функции `copy.copy()`.
+
+* **\_\_deepcopy\_\_(self, memodict={})** - для функции `copy.deepcopy()`. `memodict` - это кэш предыдущих скопированных объектов, он предназначен для оптимизации копирования и предотвращения бесконечной рекурсии, когда копируются рекурсивные структуры данных. Когда вы хотите полностью скопировать какой-нибудь конкретный атрибут, вызовите на нём copy.deepcopy() с первым параметром memodict.
